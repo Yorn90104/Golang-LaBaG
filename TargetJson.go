@@ -179,11 +179,6 @@ func (self *JsonLaBaG) Logic() {
 	}
 
 	for self.GameRunning() {
-		// 清空 OneData
-		for key := range self.OneData {
-			delete(self.OneData, key)
-		}
-
 		self.Random()
 		self.CalculateScore()
 		self.Result()
@@ -289,7 +284,13 @@ func (self *JsonLaBaG) Result() {
 	self.Played++
 	self.Score += self.MarginScore
 	self.MarginScore = 0
-	self.AllData[fmt.Sprintf("%d", self.DataIndex)] = self.OneData
+
+	// 深度複製每一次的隨機數資料
+	OneDataCopy := make(map[string]int)
+	for k, v := range self.OneData {
+		OneDataCopy[k] = v
+	}
+	self.AllData[fmt.Sprintf("%d", self.DataIndex)] = OneDataCopy
 }
 
 func (self *JsonLaBaG) JudgeMod() {
@@ -456,4 +457,5 @@ func main() {
 	}
 
 	fmt.Println("文件成功寫入")
+
 }
