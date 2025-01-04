@@ -13,7 +13,8 @@ Go 語言版本 | Golang version
 ## 使用 | Usage
 
 ### LaBaG.go
-遊玩一局啦八機遊戲 | Play a round of LaBaG game
+遊玩一局啦八機遊戲
+Play a round of LaBaG game
 
 - 直接運行 | Run
 
@@ -29,7 +30,8 @@ Go 語言版本 | Golang version
   ```
 
 ### TargetJson.go
-產生用於 LaBaG(Python版本) 中模擬一局的 .json 檔案 | Generate a .json file for simulating a game in LaBaG (Python version)
+產生用於 LaBaG(Python版本) 中模擬一局的 .json 檔案 
+Generate a .json file for simulating a game in LaBaG (Python version)
 
 1. 建置後運行 | Build
 
@@ -44,6 +46,6 @@ Go 語言版本 | Golang version
 
 4. 在 LaBaG(Python版本) 將 `.json` 檔案的路徑輸入 | Input the path of the `.json` file in LaBaG (Python version)
 
-[LaBaG-PythonProject](https://github.com/Yorn90104/LaBaG-PythonProject.git)
+  [LaBaG-PythonProject](https://github.com/Yorn90104/LaBaG-PythonProject.git)
 
 5. 根據指引進行遊戲 | Follow the prompts to play the game.
