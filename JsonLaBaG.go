@@ -1,14 +1,17 @@
 package main
 
 import (
+	"encoding/json"
 	"fmt"
 	"math/rand"
+	"os"
+	"strconv"
 	"time"
 )
 
 var (
 	PMap = make(map[string]*P)
-	Game *LaBaG
+	Game *JsonLaBaG
 )
 
 func init() {
@@ -49,7 +52,10 @@ func init() {
 		"PiKaChu":  3,
 	})
 
-	Game = &LaBaG{
+	Game = &JsonLaBaG{
+		AllData:     map[string]map[string]int{},
+		OneData:     map[string]int{},
+		DataIndex:   0,
 		Times:       30,
 		Played:      0,
 		Score:       0,
@@ -101,7 +107,7 @@ func NewP(code string, scores [3]int, ratemap map[string]int) {
 
 }
 
-type LaBaGInternal interface {
+type JsonLaBaGInternal interface {
 	// 啦八機內部有的方法
 	Reset()
 	Logic()
@@ -110,11 +116,14 @@ type LaBaGInternal interface {
 	Random()
 	CalculateScore()
 	Result()
-	GameOver()
 	JudgeMod()
 }
 
-type LaBaG struct {
+type JsonLaBaG struct {
+	AllData   map[string]map[string]int
+	OneData   map[string]int
+	DataIndex int
+
 	Times  int
 	Played int
 
@@ -141,7 +150,7 @@ type LaBaG struct {
 	KaChuTimes int
 }
 
-func (self *LaBaG) Reset() {
+func (self *JsonLaBaG) Reset() {
 	self.Played = 0
 	self.Score = 0
 	self.MarginScore = 0
@@ -160,18 +169,33 @@ func (self *LaBaG) Reset() {
 	self.KaChuTimes = 0
 }
 
-func (self *LaBaG) Logic() {
-	self.Random()
-	self.CalculateScore()
-	self.Result()
-	self.JudgeMod()
+func (self *JsonLaBaG) Logic() {
+	self.Reset()
+
+	self.DataIndex = 0
+	// 清空 AllData
+	for key := range self.AllData {
+		delete(self.AllData, key)
+	}
+
+	for self.GameRunning() {
+		// 清空 OneData
+		for key := range self.OneData {
+			delete(self.OneData, key)
+		}
+
+		self.Random()
+		self.CalculateScore()
+		self.Result()
+		self.JudgeMod()
+	}
 }
 
-func (self *LaBaG) GameRunning() bool {
+func (self *JsonLaBaG) GameRunning() bool {
 	return self.Played < self.Times
 }
 
-func (self *LaBaG) NowMod() string {
+func (self *JsonLaBaG) NowMod() string {
 	switch true {
 	case self.SuperHHH:
 		return "SuperHHH"
@@ -184,15 +208,17 @@ func (self *LaBaG) NowMod() string {
 	}
 }
 
-func (self *LaBaG) Random() {
+func (self *JsonLaBaG) Random() {
 	// 產生隨機數 依據隨機數更換 Ps 中的 P
 	RandNums := [3]int{rand.Intn(99) + 1, rand.Intn(99) + 1, rand.Intn(99) + 1}
 	self.SuperNum = rand.Intn(99) + 1
 	self.GreenNum = rand.Intn(99) + 1
 
-	fmt.Println("P 隨機數:", RandNums[0], RandNums[1], RandNums[2])
-	fmt.Println("超級阿禾隨機數:", self.SuperNum)
-	fmt.Println("綠光阿瑋隨機數:", self.GreenNum)
+	for i := 0; i < 3; i++ {
+		self.OneData[fmt.Sprintf("RandNums[%d]", i)] = RandNums[i]
+	}
+	self.OneData["SuperHHH"] = self.SuperNum
+	self.OneData["GreenWei"] = self.GreenNum
 
 	// 累積機率
 	AccRate := func() []int {
@@ -206,7 +232,6 @@ func (self *LaBaG) Random() {
 	}
 
 	RateRange := AccRate()
-	fmt.Println("機率區間:", RateRange)
 
 	for i := 0; i < 3; i++ {
 		for idx, rate := range RateRange {
@@ -223,10 +248,9 @@ func (self *LaBaG) Random() {
 			self.GssNum += 1
 		}
 	}
-	fmt.Println("咖波累積數:", self.GssNum)
 }
 
-func (self *LaBaG) CalculateScore() {
+func (self *JsonLaBaG) CalculateScore() {
 	// 計算分數
 	// 根據 typ 的情況增加 MarginScore 的分數
 	MarginAdd := func(p *P, typ int) {
@@ -234,7 +258,6 @@ func (self *LaBaG) CalculateScore() {
 	}
 
 	self.ScoreTime = self.ScoreTimeMap[self.NowMod()]
-	fmt.Println("加分倍數:", self.ScoreTime)
 
 	switch {
 	case self.Ps[0] == self.Ps[1] && self.Ps[1] == self.Ps[2]:
@@ -260,24 +283,16 @@ func (self *LaBaG) CalculateScore() {
 	}
 }
 
-func (self *LaBaG) Result() {
-	// 印出結果
+func (self *JsonLaBaG) Result() {
+	// 結果
+	self.DataIndex++
 	self.Played++
 	self.Score += self.MarginScore
-	fmt.Println()
-	fmt.Println(self.Ps[0].Code, "|", self.Ps[1].Code, "|", self.Ps[2].Code)
-	fmt.Println("+", self.MarginScore)
-	fmt.Println("目前分數：", self.Score)
-	fmt.Println("剩餘次數：", self.Times-self.Played)
 	self.MarginScore = 0
+	self.AllData[fmt.Sprintf("%d", self.DataIndex)] = self.OneData
 }
 
-func (self *LaBaG) GameOver() {
-	fmt.Println()
-	fmt.Println("遊戲已結束，最終分數為：", self.Score)
-}
-
-func (self *LaBaG) JudgeMod() {
+func (self *JsonLaBaG) JudgeMod() {
 	// 判斷模式
 	AnyP := func(cond func(*P) bool) bool {
 		for _, p := range self.Ps {
@@ -307,8 +322,6 @@ func (self *LaBaG) JudgeMod() {
 			self.PiKaChu = true
 			self.Played -= 5
 			self.KaChuTimes += 1
-			fmt.Println("皮卡丘為你充電")
-			fmt.Printf("已觸發 %d 次皮卡丘充電\n", self.KaChuTimes)
 		} else {
 			self.PiKaChu = false
 		}
@@ -322,7 +335,6 @@ func (self *LaBaG) JudgeMod() {
 		if self.SuperNum <= self.SuperRate && AnyB {
 			self.SuperHHH = true
 			self.SuperTimes += 6
-			fmt.Println("超級阿禾出現")
 			if self.PiKaChu {
 				self.PiKaChu = false
 			}
@@ -331,7 +343,6 @@ func (self *LaBaG) JudgeMod() {
 			if AllP(func(p *P) bool { return p.Code == "B" }) {
 				double_score := self.Score * self.ScoreTime / 2
 				self.Score += double_score
-				fmt.Println("超級阿禾加倍分:", double_score)
 			}
 		}
 
@@ -340,7 +351,6 @@ func (self *LaBaG) JudgeMod() {
 		if self.GreenNum <= self.GreenRate && AllA {
 			self.GreenWei = true
 			self.GreenTimes += 2
-			fmt.Println("綠光阿瑋出現")
 			if self.PiKaChu {
 				self.PiKaChu = false
 			}
@@ -348,7 +358,6 @@ func (self *LaBaG) JudgeMod() {
 			self.GreenWei = true
 			self.GreenTimes += 2
 			self.GssNum = 0
-			fmt.Println("綠光阿瑋出現")
 			if self.PiKaChu {
 				self.PiKaChu = false
 			}
@@ -358,9 +367,7 @@ func (self *LaBaG) JudgeMod() {
 		self.SuperTimes -= 1
 		if AllP(func(p *P) bool { return p.Code == "B" }) {
 			self.SuperTimes += 2
-			fmt.Println("全阿禾，次數不消耗且+1！")
 		}
-		fmt.Printf("超級阿禾剩餘次數: %d 次\n", self.SuperTimes)
 		if self.SuperTimes <= 0 { // 超級阿禾次數用完
 			self.SuperHHH = false
 			self.JudgeMod() // 判斷是否可再進入特殊模式
@@ -370,9 +377,7 @@ func (self *LaBaG) JudgeMod() {
 		self.GreenTimes -= 1
 		if AllP(func(p *P) bool { return p.Code == "A" }) {
 			self.GreenTimes += 1
-			fmt.Println("全咖波，次數不消耗！")
 		}
-		fmt.Printf("綠光阿瑋剩餘次數: %d 次\n", self.GreenTimes)
 		if self.GreenTimes <= 0 { // 綠光阿瑋次數用完
 			self.GreenWei = false
 			self.JudgeMod() // 判斷是否可再進入特殊模式
@@ -381,15 +386,74 @@ func (self *LaBaG) JudgeMod() {
 	}
 }
 
-func main() {
-	for Game.GameRunning() {
-		var press string
-		fmt.Println("請按ENTER")
-		fmt.Scanln(&press)
+func InputTarget() int {
+	for {
+		fmt.Println("請輸入目標分數: ")
+		var input string
+		fmt.Scanln(&input)
+		Target, err := strconv.Atoi(input)
+		if err != nil {
+			fmt.Println("請輸入有效的數字:", err)
+			continue
+		}
 
-		if press == "" {
-			Game.Logic()
+		if Target > 0 {
+			return Target
+		} else {
+			fmt.Println("目標分數必須大於 0")
 		}
 	}
-	Game.GameOver()
+}
+
+func main() {
+
+	Target := InputTarget()
+
+	i := 0
+	recent_max, recent_total := 0, 0
+
+	for {
+		Game.Logic()
+
+		i++
+		recent_total = (recent_total + Game.Score) % 1000000000000000
+
+		if Game.Score > recent_max {
+			recent_max = Game.Score
+		}
+		fmt.Printf("第%d次 分數：%8d【目前最大值：%d】【目前平均值：%.2f】\n", i, Game.Score, recent_max, float64(recent_total)/float64(i))
+
+		if Game.Score >= Target {
+			break
+		}
+	}
+
+	// 確保目錄存在
+	output_dir := "C:\\JsonLaBaG\\"
+	err := os.MkdirAll(output_dir, os.ModePerm) // os.ModePerm 是一個常數，代表“所有權限”，即 0777，表示目錄擁有讀、寫、執行權限。
+	if err != nil {
+		fmt.Println("創建目錄失敗:", err)
+		return
+	}
+
+	timestamp := time.Now().Format("20060102") // YYYYMMDD
+
+	// 建立 JSON 文件
+	file, err := os.Create(fmt.Sprintf("%s%d_%s.json", output_dir, Game.Score, timestamp))
+	if err != nil {
+		fmt.Println("創建文件失敗:", err)
+		return
+	}
+	defer file.Close() // 最後將文件關閉
+
+	// 將 Game.AllData 寫入 JSON 文件
+	encoder := json.NewEncoder(file)
+	encoder.SetIndent("", "    ") // 設置 JSON 輸出的縮排格式
+	err = encoder.Encode(Game.AllData)
+	if err != nil {
+		fmt.Println("寫入 JSON 失敗:", err)
+		return
+	}
+
+	fmt.Println("文件成功寫入")
 }
