@@ -106,12 +106,12 @@ type LaBaGInternal interface {
 	Reset()
 	Logic()
 	GameRunning() bool
-	NodMod() string
+	NodMode() string
 	Random()
 	CalculateScore()
 	Result()
 	GameOver()
-	JudgeMod()
+	JudgeMode()
 }
 
 type LaBaG struct {
@@ -164,7 +164,7 @@ func (self *LaBaG) Logic() {
 	self.Random()
 	self.CalculateScore()
 	self.Result()
-	self.JudgeMod()
+	self.JudgeMode()
 }
 
 func (self *LaBaG) GameRunning() bool {
@@ -277,7 +277,7 @@ func (self *LaBaG) GameOver() {
 	fmt.Println("遊戲已結束，最終分數為：", self.Score)
 }
 
-func (self *LaBaG) JudgeMod() {
+func (self *LaBaG) JudgeMode() {
 	// 判斷模式
 	AnyP := func(cond func(*P) bool) bool {
 		for _, p := range self.Ps {
@@ -333,6 +333,7 @@ func (self *LaBaG) JudgeMod() {
 				self.Score += double_score
 				fmt.Println("超級阿禾加倍分:", double_score)
 			}
+			return
 		}
 
 		// 判斷綠光阿瑋
@@ -344,6 +345,7 @@ func (self *LaBaG) JudgeMod() {
 			if self.PiKaChu {
 				self.PiKaChu = false
 			}
+			return
 		} else if self.GssNum >= 20 { // 咖波累積數達到20
 			self.GreenWei = true
 			self.GreenTimes += 2
@@ -352,6 +354,7 @@ func (self *LaBaG) JudgeMod() {
 			if self.PiKaChu {
 				self.PiKaChu = false
 			}
+			return
 		}
 		return
 	case "SuperHHH":
@@ -363,7 +366,7 @@ func (self *LaBaG) JudgeMod() {
 		fmt.Printf("超級阿禾剩餘次數: %d 次\n", self.SuperTimes)
 		if self.SuperTimes <= 0 { // 超級阿禾次數用完
 			self.SuperHHH = false
-			self.JudgeMod() // 判斷是否可再進入特殊模式
+			self.JudgeMode() // 判斷是否可再進入特殊模式
 		}
 		return
 	case "GreenWei":
@@ -375,7 +378,7 @@ func (self *LaBaG) JudgeMod() {
 		fmt.Printf("綠光阿瑋剩餘次數: %d 次\n", self.GreenTimes)
 		if self.GreenTimes <= 0 { // 綠光阿瑋次數用完
 			self.GreenWei = false
-			self.JudgeMod() // 判斷是否可再進入特殊模式
+			self.JudgeMode() // 判斷是否可再進入特殊模式
 		}
 		return
 	}

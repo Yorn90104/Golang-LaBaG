@@ -112,11 +112,11 @@ type JsonLaBaGInternal interface {
 	Reset()
 	Logic()
 	GameRunning() bool
-	NodMod() string
+	NodMode() string
 	Random()
 	CalculateScore()
 	Result()
-	JudgeMod()
+	JudgeMode()
 }
 
 type JsonLaBaG struct {
@@ -182,7 +182,7 @@ func (self *JsonLaBaG) Logic() {
 		self.Random()
 		self.CalculateScore()
 		self.Result()
-		self.JudgeMod()
+		self.JudgeMode()
 	}
 }
 
@@ -293,7 +293,7 @@ func (self *JsonLaBaG) Result() {
 	self.AllData[fmt.Sprintf("%d", self.DataIndex)] = OneDataCopy
 }
 
-func (self *JsonLaBaG) JudgeMod() {
+func (self *JsonLaBaG) JudgeMode() {
 	// 判斷模式
 	AnyP := func(cond func(*P) bool) bool {
 		for _, p := range self.Ps {
@@ -345,6 +345,7 @@ func (self *JsonLaBaG) JudgeMod() {
 				double_score := self.Score * self.ScoreTime / 2
 				self.Score += double_score
 			}
+			return
 		}
 
 		// 判斷綠光阿瑋
@@ -355,6 +356,7 @@ func (self *JsonLaBaG) JudgeMod() {
 			if self.PiKaChu {
 				self.PiKaChu = false
 			}
+			return
 		} else if self.GssNum >= 20 { // 咖波累積數達到20
 			self.GreenWei = true
 			self.GreenTimes += 2
@@ -362,6 +364,7 @@ func (self *JsonLaBaG) JudgeMod() {
 			if self.PiKaChu {
 				self.PiKaChu = false
 			}
+			return
 		}
 		return
 	case "SuperHHH":
@@ -371,7 +374,7 @@ func (self *JsonLaBaG) JudgeMod() {
 		}
 		if self.SuperTimes <= 0 { // 超級阿禾次數用完
 			self.SuperHHH = false
-			self.JudgeMod() // 判斷是否可再進入特殊模式
+			self.JudgeMode() // 判斷是否可再進入特殊模式
 		}
 		return
 	case "GreenWei":
@@ -381,7 +384,7 @@ func (self *JsonLaBaG) JudgeMod() {
 		}
 		if self.GreenTimes <= 0 { // 綠光阿瑋次數用完
 			self.GreenWei = false
-			self.JudgeMod() // 判斷是否可再進入特殊模式
+			self.JudgeMode() // 判斷是否可再進入特殊模式
 		}
 		return
 	}
