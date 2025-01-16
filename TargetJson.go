@@ -425,7 +425,7 @@ func main() {
 		if Game.Score > recent_max {
 			recent_max = Game.Score
 		}
-		fmt.Printf("第%d次 分數：%8d【目前最大值：%d】【目前平均值：%.2f】\n", i, Game.Score, recent_max, float64(recent_total)/float64(i))
+		fmt.Printf("第%d次 分數：%8d【目前最大值：%d】【目前平均值：%.2f】\n", i, Game.Score, recent_max, float64(recent_total)/float64(i%1000000000000000))
 
 		if Game.Score >= Target {
 			break
